@@ -11,21 +11,38 @@ import initChannel
 driver, nick = initChannel.init()
 
 primer_usuario = WebDriverWait(driver, 50).until(
-        EC.visibility_of_element_located((By.XPATH, '//div[@class="kiwi-messagelist-body"]/span')))
+        EC.visibility_of_element_located((By.XPATH, '//div[@data-name="queries"]//div[@class="kiwi-statebrowser-channel-name"]')))
 
 print(primer_usuario.text)
 primer_usuario.click()
 
+input("Presiona enter para copiar la conversación...")
 #Comienza la conversación
 #Cada linea de la conversación, en primera instancia, se introducirá en una lista (puede haber más de una línea)
-chat_usu_list = WebDriverWait(driver, 50).until(
-        EC.visibility_of_all_elements_located(((By.XPATH, '//div[@class="kiwi-messagelist-body"]/span')))
+#Primero se saca la lista de usuarios (será una lista donde se repetirán los usuarios continuamente, ya que solo hablan dos
+chat_priv_nick = WebDriverWait(driver, 50).until(
+        EC.visibility_of_all_elements_located(((By.XPATH, '//div[@class="kiwi-messagelist-item"]//a'))))
+#Esto será la lista de todas las respuestas. Más adelante se combinará con su usuario
+chat_priv_resp = WebDriverWait(driver, 50).until(
+        EC.visibility_of_all_elements_located(((By.XPATH, '//div[@class="kiwi-messagelist-item"]//div[@class="kiwi-messagelist-body"]'))))
 
-print(chat_usu_list[0].text)
+#Se transforman las listas de objetos en texto
+chat_priv_nick_text = [elemento.text for elemento in chat_priv_nick]
+chat_priv_resp_text = [elemento.text for elemento in chat_priv_resp]
 
-#Conversación
-#/html/body/div[1]/div[2]/div[2]/div[3]/div[1]/div/div/div/div[1]/div/div/div
-#/html/body/div[1]/div[2]/div[2]/div[3]/div[1]/div/div/div/div[2]/div/div/div
-#Nick del usuario (Usuario:)
-#/html/body/div[1]/div[2]/div[2]/div[3]/div[1]/div/div/div/div[1]/div/div/span[2]/a
+#Como cada vez que un usuario hablar al final se añaden ":", se extrae sin estos
+i = 0
+for nick in chat_priv_nick_text:
+        longitud = len(nick)
+        chat_priv_nick_text[i]= nick[:longitud - 1]
+        i += 1
+
+#Se ordena en orden inverso para obtener siempre lo último en la conversación
+chat_priv_nick_text_invertido = list(reversed(chat_priv_nick_text))
+chat_priv_resp_text_invertido = list(reversed(chat_priv_resp_text))
+
+conver = list(zip(chat_priv_nick_text_invertido, chat_priv_resp_text_invertido))
+
+print(conver)
+
 

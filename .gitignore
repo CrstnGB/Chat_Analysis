@@ -244,3 +244,4 @@ chromedriver.exe
 LICENSE.chromedriver
 
 /Z-Outputs/*
+/__pycache__/*

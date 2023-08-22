@@ -54,9 +54,9 @@ def init():
         EC.visibility_of_element_located((By.ID, "nickInput")))
 
     # Se genera un nick distinto cada vez para evitar la creación descontrolada del mismo para luego borrarlo de la lista
-    nicks_raices = ["mari", "cai_cai", "morenita", "prueba"]
-    nick_raiz = nicks_raices[random.choice(list(range(4)))]
-    lista_aleatoria = list(range(1, 100))
+    nicks_raices = ["mari", "chica_cai", "morenita"]
+    nick_raiz = nicks_raices[random.choice(list(range(len(nicks_raices))))]
+    lista_aleatoria = list(range(19, 55))
     numero_aleatorio = random.choice(lista_aleatoria)
     nick = nick_raiz + str(numero_aleatorio)
 
