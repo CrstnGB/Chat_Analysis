@@ -36,37 +36,39 @@ def read_conver():
                 chat_priv_nick_text[i] = nick[:longitud - 1]
                 i += 1
 
-        # Se ordena en orden inverso para obtener siempre lo último en la conversación
-        chat_priv_nick_text_invertido = list(reversed(chat_priv_nick_text))
-        chat_priv_resp_text_invertido = list(reversed(chat_priv_resp_text))
-
         # Se combina para que cada intervención de usuario case con lo conversado en su linea
-        conver = list(zip(chat_priv_nick_text_invertido, chat_priv_resp_text_invertido))
-        return conver
+        conver = list(zip(chat_priv_nick_text, chat_priv_resp_text))
+        return conver   #Se devuelve una lista de listas
 
-primer_usuario = WebDriverWait(driver, 100).until(
+def input_prompt_gpt_system(content_sistema):
+        messages.append({"role": "system", "content": content_sistema})
+
+        return messages
+
+primer_usuario = WebDriverWait(driver, 1000 ).until(
         EC.visibility_of_element_located((By.XPATH, '//div[@data-name="queries"]//div[@class="kiwi-statebrowser-channel-name"]')))
 
 print(primer_usuario.text)
 primer_usuario.click()
 
-input("Presiona enter para copiar la conversación...")
+input("Presiona enter para comenzar la conversación...")
 
 continuar = True
 while continuar == True:
         #Se define el prompt de asistente para chatgpt
-        archivo_prompt_asistente = 'Prompts para chatgpt.txt'
-        prompt_asistente = ""
-        with open(archivo_prompt_asistente) as archivo:
+        archivo_prompt_sistema = 'Prompts para chatgpt.txt'
+        prompt_sistema = ""
+        with open(archivo_prompt_sistema) as archivo:
             for linea in archivo:
-                prompt_asistente = prompt_asistente + "\n" + linea
+                prompt_sistema = prompt_sistema + "\n" + linea
 
-        print(prompt_asistente)
+        print(prompt_sistema)
 
-        content_asistente = prompt_asistente
+        content_sistema = prompt_sistema
 
         messages = [{"role": "system",
-                     "content": content_asistente}]  # Con este rol, se van a dar unas instrucciones para orientar al programa al objetivo deseado (se le da un contexto para condicionar la conversación
+                     "content": content_sistema}]  # Con este rol, se van a dar unas instrucciones para orientar al
+        # programa al objetivo deseado (se le da un contexto para condicionar la conversación
 
         #Comienza la conversación
         primer_mensaje = True
@@ -85,54 +87,74 @@ while continuar == True:
 
                 '''Debido a que es una conversación natural, es crucial que exista un tiempo de espera antes de contestar, sino
                                 daría la sensación de que se está conversando on una IA.'''
-                tiempo_espera = random.choice(list(range(5, 20)))  # Se estima que se tarda en contestar entre 10 y 30 segundos
+                tiempo_espera = random.choice(list(range(5, 10)))  # Se estima que se tarda en contestar entre 10 y 30 segundos
                 time.sleep(tiempo_espera)
                 if primer_mensaje:
                         conver = read_conver()
+                        conver_bk = []
                 else:
-                        while conver == conver_bk:
+                        while conver == conver_bk:      #Estas dos variables se han igualado al final del for
+                                print("ESPERANDO respuesta...")
                                 time.sleep(10)
                                 conver = read_conver()
-                conver_bk = conver
 
+                print("PROCESANDO respuesta...")
+
+                #Se hace un recordatorio del prompt de sistema cada 10 itiraciones
+                if i % 10 == 0:
+                        messages.append({"role": "system", "content": content_sistema})
+                        print("Se hace recordatorio del prompt de sistema")
                 #Se lee si yo he dicho (manualmente) la palabra clave de salida sin resumen
                 #Además, se lee si el usuario se ha ido y, por lo tanto, se lee un error
                 palabra_clave = "chao!!"
                 palabra_error_nick = "No such nick"
+                conver_limpia = []  # En esta lista se va a incluir lo único que no este repetido en la conversación
                 for sublista in conver:
                         if palabra_clave in sublista or palabra_error_nick in sublista:
                                 exit_bucle = True
                                 break
+                        else:
+                                if sublista not in conver_bk:
+                                        conver_limpia.append(sublista)
+                                else:
+                                        pass
                 if exit_bucle:
                         break
 
-                if conver[0][1] == palabra_error_nick:
-                        break
+                conver_bk = conver  # Se crea un back up de la conversación
                 '''Como lo que se ha obtenido en la última variable es una lista de listas, se extrae lo último que ha respondido
                 el usuario con el que se habla para transformarlo en una cadena de texto. Esto será el prompt. Ojo, si el 
                 último en hablar he sido yo (que solo puede ser de forma manual) el programa sigue sin consultar a gpt.'''
-                respuesta_usuario = ""
-                for sublista in conver:
-                        user_nick = sublista[0]
-                        if user_nick == nick:
-                                break
-                        else:
-                                if primer_mensaje:
-                                        respuesta_usuario = sublista[1]
-                                else:
-                                        respuesta_usuario = respuesta_usuario + ". " + sublista[1]
+                cadena_conver_resp = []
+                for sublista in conver_limpia:
+                        cadena_conver_resp.append(sublista[1])
 
+                respuesta_usuario = ". ".join(cadena_conver_resp)
 
-                if respuesta_usuario != "":
-                        #Se llama a la función en la que se obtendrá la respuesta por parte de gpt.
-                        respuesta_gpt, messages = gpt.gpt_conversation(respuesta_usuario, messages)
-                        tiempo_escritura_por_palabra = 1.5      #segundos
-                        num_palabras_respuesta_gpt = len(re.findall(r"\w+", respuesta_gpt))
-                        time.sleep(tiempo_escritura_por_palabra * num_palabras_respuesta_gpt)
-                        #Ahora se envía la respuesta de gpt en el chat
-                        campo_mensaje = driver.find_element(by = By.XPATH, value = '//div[@placeholder="Enviar un mensaje..."]')
+                print(f'Respuesta usuario para enviar a gpt: {respuesta_usuario}')
+
+                #Se llama a la función en la que se obtendrá la respuesta por parte de gpt.
+                respuesta_gpt, messages = gpt.gpt_conversation(respuesta_usuario, messages)
+                # Se sustituyen los simbolos de interrogación y exclamación al comienzo de las preguntas y exclamaciones
+                caracteres_buscados = ["¿", "¡"]
+                for caracter in caracteres_buscados:
+                        respuesta_gpt = respuesta_gpt.replace(caracter, "")
+                #Se transforma la frase a minúsculas
+                respuesta_gpt = respuesta_gpt.lower()
+                #Se imprime por pantalla la respuesta transformada, tal y como se vería en el chat
+                print(f'Respuesta gpt: {respuesta_gpt}')
+                #Ahora se envía la respuesta de gpt en el chat
+                campo_mensaje = driver.find_element(by = By.XPATH, value = '//div[@placeholder="Enviar un mensaje..."]')
+                # Se va a dividir la respuesta en varios "intros" por cada punto, para darle naturalidad
+                respuesta_gpt_lista = respuesta_gpt.split(".")
+
+                print('Simulando envío de respuesta por partes y con tiempo de escritura...')
+                for frase in respuesta_gpt_lista:
                         try:
-                                campo_mensaje.send_keys(respuesta_gpt)
+                                tiempo_escritura_por_palabra = 1.5  # segundos
+                                num_palabras_respuesta_frase = len(re.findall(r"\w+", frase))
+                                time.sleep(tiempo_escritura_por_palabra * num_palabras_respuesta_frase)
+                                campo_mensaje.send_keys(frase)
                                 campo_mensaje.send_keys(Keys.ENTER)
                         except WebDriverException as e:
                                 if "ChromeDriver only supports characters in the BMP" in str(e):
@@ -142,8 +164,28 @@ while continuar == True:
                                 else:
                                         print("Error no contemplado")
 
+                print("Envío completado")
+
+                #Se da algo de tiempo para que se cargue la conversación en el scrip HTML del chat
+                time.sleep(5)
+                #Se vuelve a leer la conversacion y se crea un backup
+                conver_intermedia = read_conver()
+                conver_intermedia_solo_ususario = [sublista[1] for sublista in conver_intermedia if sublista[0] != nick]
+                conver_solo_usuario = [sublista[1] for sublista in conver if sublista[0] != nick]
+
+                # Se vuelve a leer la conversacion
+                conver = conver_intermedia
+                #Se compara exclusivamente lo que ha dicho el usuario antes de enviar las respuestas y después
+                if conver_intermedia_solo_ususario == conver_solo_usuario:
+                        conver_bk = conver
                 else:
-                        pass
+                        for sublista in conver_intermedia:
+                                if sublista not in conver_bk and sublista[0]==nick:
+                                        conver_bk.append(sublista)
+                                else:
+                                        pass
+
+
                 #Se cambia el estado de primer mensaje para saber que ya hay más de un mensaje por parte del usuario
                 primer_mensaje = False
                 i += 1
@@ -162,4 +204,4 @@ while continuar == True:
         else:
                 continuar = False
 
-
+driver.quit()

@@ -246,3 +246,4 @@ LICENSE.chromedriver
 /Z-Outputs/*
 /__pycache__/*
 configGptApi.py
+pruebas.py
