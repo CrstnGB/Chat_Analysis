@@ -40,11 +40,6 @@ def read_conver():
         conver = list(zip(chat_priv_nick_text, chat_priv_resp_text))
         return conver   #Se devuelve una lista de listas
 
-def input_prompt_gpt_system(content_sistema):
-        messages.append({"role": "system", "content": content_sistema})
-
-        return messages
-
 primer_usuario = WebDriverWait(driver, 1000 ).until(
         EC.visibility_of_element_located((By.XPATH, '//div[@data-name="queries"]//div[@class="kiwi-statebrowser-channel-name"]')))
 
@@ -56,15 +51,24 @@ input("Presiona enter para comenzar la conversación...")
 continuar = True
 while continuar == True:
         #Se define el prompt de asistente para chatgpt
+        partes_prompt = ["Introduccion", "Descripcion", "Objetivo", "Metodo"]
+        dict_prompt_sistema = {partes_prompt[0]: "", partes_prompt[1]: "", partes_prompt[2]: "", partes_prompt[3]: ""}
         archivo_prompt_sistema = 'Prompts para chatgpt.txt'
-        prompt_sistema = ""
+        prompt_sistema_completo = ""
+
+        i = 0
         with open(archivo_prompt_sistema) as archivo:
             for linea in archivo:
-                prompt_sistema = prompt_sistema + "\n" + linea
+                if linea != "":
+                        prompt_sistema_completo = prompt_sistema_completo + "\n" + linea
+                        if partes_prompt[i+1] == linea:
+                                i += 1
+                        parte_prompt = partes_prompt[i]
+                        dict_prompt_sistema[parte_prompt] += f'\n{linea}'
 
-        print(prompt_sistema)
+        print(prompt_sistema_completo)
 
-        content_sistema = prompt_sistema
+        content_sistema = prompt_sistema_completo
 
         messages = [{"role": "system",
                      "content": content_sistema}]  # Con este rol, se van a dar unas instrucciones para orientar al
@@ -100,10 +104,20 @@ while continuar == True:
 
                 print("PROCESANDO respuesta...")
 
+                #RECORDATORIOS A GPT
+
                 #Se hace un recordatorio del prompt de sistema cada 10 itiraciones
-                if i % 10 == 0:
-                        messages.append({"role": "system", "content": content_sistema})
+                if i % 5 == 0:
+                        messages[0] = {"role": "system", "content": dict_prompt_sistema[partes_prompt[0]] + "\n"
+                                                                    + dict_prompt_sistema[partes_prompt[1]]}
+                        for j in range(2,4):
+                                dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]}
+                                if dict_buscado in messages:
+                                        indice = messages.index(dict_buscado)
+                                        del messages[indice]
+                                messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
                         print("Se hace recordatorio del prompt de sistema")
+
                 #Se lee si yo he dicho (manualmente) la palabra clave de salida sin resumen
                 #Además, se lee si el usuario se ha ido y, por lo tanto, se lee un error
                 palabra_clave = "chao!!"
@@ -151,7 +165,7 @@ while continuar == True:
                 print('Simulando envío de respuesta por partes y con tiempo de escritura...')
                 for frase in respuesta_gpt_lista:
                         try:
-                                tiempo_escritura_por_palabra = 1.5  # segundos
+                                tiempo_escritura_por_palabra = 1  # segundos
                                 num_palabras_respuesta_frase = len(re.findall(r"\w+", frase))
                                 time.sleep(tiempo_escritura_por_palabra * num_palabras_respuesta_frase)
                                 campo_mensaje.send_keys(frase)
