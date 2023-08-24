@@ -40,6 +40,15 @@ def read_conver():
         conver = list(zip(chat_priv_nick_text, chat_priv_resp_text))
         return conver   #Se devuelve una lista de listas
 
+def refresh_prompts(dict_prompt_sistema, partes_prompt, messages, ini, fin):
+        for i in range(ini, fin):
+                dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[i]]}
+                indice_dict_buscado = messages.index(dict_buscado)
+                del messages[indice_dict_buscado]
+                messages.append(
+                        {"role": "system", "content": dict_prompt_sistema[partes_prompt[i]]})
+                print(f"Se hace recordatorio del prompt de sistema de la categoría {partes_prompt[i]}")
+
 primer_usuario = WebDriverWait(driver, 1000 ).until(
         EC.visibility_of_element_located((By.XPATH, '//div[@data-name="queries"]//div[@class="kiwi-statebrowser-channel-name"]')))
 
@@ -99,7 +108,7 @@ while continuar == True:
                 else:
                         while conver == conver_bk:      #Estas dos variables se han igualado al final del for
                                 print("ESPERANDO respuesta...")
-                                time.sleep(10)
+                                time.sleep(5)
                                 conver = read_conver()
 
                 print("PROCESANDO respuesta...")
@@ -108,24 +117,11 @@ while continuar == True:
 
                 #Se hace un recordatorio del prompt de sistema cada 10 itiraciones
                 if i % 2 == 0:
-                        for j in range(2,4):
-                                dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]}
-                                if dict_buscado in messages:
-                                        indice_dict_buscado = messages.index(dict_buscado)
-                                        del messages[indice_dict_buscado]
-                                else:
-                                        messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
-                        print("Se hace recordatorio del prompt de sistema de Objetivo y Metodo")
+                        # Los valores "a" y "b" (los numéricos) son los índices de la lista "partes_prompt"
+                        refresh_prompts(dict_prompt_sistema, partes_prompt, messages, 2, 3)
 
                 if i % 5 == 0:
-                        for j in range(0,2):
-                                dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]}
-                                if dict_buscado in messages:
-                                        indice_dict_buscado = messages.index(dict_buscado)
-                                        del messages[indice_dict_buscado]
-                                else:
-                                        messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
-                        print("Se hace recordatorio del prompt de sistema de Introducción y Descripción")
+                        refresh_prompts(dict_prompt_sistema, partes_prompt, messages, 0, 1)
 
                 #Se lee si yo he dicho (manualmente) la palabra clave de salida sin resumen
                 #Además, se lee si el usuario se ha ido y, por lo tanto, se lee un error
@@ -190,7 +186,7 @@ while continuar == True:
                 print("Envío completado")
 
                 #Se da algo de tiempo para que se cargue la conversación en el scrip HTML del chat
-                time.sleep(5)
+                time.sleep(2)
                 #Se vuelve a leer la conversacion y se crea un backup
                 conver_intermedia = read_conver()
                 conver_intermedia_solo_ususario = [sublista[1] for sublista in conver_intermedia if sublista[0] != nick]
@@ -213,9 +209,8 @@ while continuar == True:
                 primer_mensaje = False
                 i += 1
 
-        prompt_resumen = "Olvídate ya que estás en una conversación. Devuelveme un resumen muy formal y estructurado de cómo es " \
-                         "el usuario con el que hablas (el que tiene 'role: user' en tu lista de diccionarios de conversacion) " \
-                         " además de todos los datos obtenidos de este." \
+        prompt_resumen = "Ya vuelves a ser chatgpt normal. Devuelveme un resumen muy formal y estructurado de " \
+                         "de todos los datos personales que te he enviado en la conversacion" \
                          "Comienza simplemente por la frase: 'Aquí tienes un resumen estructurado del usuario:'"
         respuesta_gpt, messages = gpt.gpt_conversation(prompt_resumen, messages)
         print(conver)
