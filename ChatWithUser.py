@@ -48,10 +48,11 @@ primer_usuario.click()
 
 input("Presiona enter para comenzar la conversación...")
 
+messages = []
 continuar = True
 while continuar == True:
         #Se define el prompt de asistente para chatgpt
-        partes_prompt = ["Introduccion", "Descripcion", "Objetivo", "Metodo"]
+        partes_prompt = ["INTRODUCCION:", "DESCRIPCION:", "OBJETIVO:", "METODO:", "TEXTO_NECESARIO_EVITAR_ERRORES"]
         dict_prompt_sistema = {partes_prompt[0]: "", partes_prompt[1]: "", partes_prompt[2]: "", partes_prompt[3]: ""}
         archivo_prompt_sistema = 'Prompts para chatgpt.txt'
         prompt_sistema_completo = ""
@@ -59,20 +60,19 @@ while continuar == True:
         i = 0
         with open(archivo_prompt_sistema) as archivo:
             for linea in archivo:
+                print(linea)
+                print(type(linea))
                 if linea != "":
-                        prompt_sistema_completo = prompt_sistema_completo + "\n" + linea
-                        if partes_prompt[i+1] == linea:
+                        if partes_prompt[i+1] in linea:
                                 i += 1
                         parte_prompt = partes_prompt[i]
-                        dict_prompt_sistema[parte_prompt] += f'\n{linea}'
+                        dict_prompt_sistema[parte_prompt] += linea
 
-        print(prompt_sistema_completo)
-
-        content_sistema = prompt_sistema_completo
-
-        messages = [{"role": "system",
-                     "content": content_sistema}]  # Con este rol, se van a dar unas instrucciones para orientar al
-        # programa al objetivo deseado (se le da un contexto para condicionar la conversación
+        for i in range(0,4):
+                print(f'Visualizando el diccionario para {partes_prompt[i]} \n{dict_prompt_sistema[partes_prompt[i]]}\n')
+                messages.append({"role": "system",
+                             "content": dict_prompt_sistema[partes_prompt[i]]})  # Con este rol, se van a dar unas instrucciones para orientar al
+                # programa al objetivo deseado (se le da un contexto para condicionar la conversación
 
         #Comienza la conversación
         primer_mensaje = True
@@ -107,16 +107,25 @@ while continuar == True:
                 #RECORDATORIOS A GPT
 
                 #Se hace un recordatorio del prompt de sistema cada 10 itiraciones
-                if i % 5 == 0:
-                        messages[0] = {"role": "system", "content": dict_prompt_sistema[partes_prompt[0]] + "\n"
-                                                                    + dict_prompt_sistema[partes_prompt[1]]}
+                if i % 2 == 0:
                         for j in range(2,4):
                                 dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]}
                                 if dict_buscado in messages:
-                                        indice = messages.index(dict_buscado)
-                                        del messages[indice]
-                                messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
-                        print("Se hace recordatorio del prompt de sistema")
+                                        indice_dict_buscado = messages.index(dict_buscado)
+                                        del messages[indice_dict_buscado]
+                                else:
+                                        messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
+                        print("Se hace recordatorio del prompt de sistema de Objetivo y Metodo")
+
+                if i % 5 == 0:
+                        for j in range(0,2):
+                                dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]}
+                                if dict_buscado in messages:
+                                        indice_dict_buscado = messages.index(dict_buscado)
+                                        del messages[indice_dict_buscado]
+                                else:
+                                        messages.append({"role": "system", "content": dict_prompt_sistema[partes_prompt[j]]})
+                        print("Se hace recordatorio del prompt de sistema de Introducción y Descripción")
 
                 #Se lee si yo he dicho (manualmente) la palabra clave de salida sin resumen
                 #Además, se lee si el usuario se ha ido y, por lo tanto, se lee un error
@@ -150,7 +159,7 @@ while continuar == True:
                 #Se llama a la función en la que se obtendrá la respuesta por parte de gpt.
                 respuesta_gpt, messages = gpt.gpt_conversation(respuesta_usuario, messages)
                 # Se sustituyen los simbolos de interrogación y exclamación al comienzo de las preguntas y exclamaciones
-                caracteres_buscados = ["¿", "¡"]
+                caracteres_buscados = ["¿", "¡", "'"]
                 for caracter in caracteres_buscados:
                         respuesta_gpt = respuesta_gpt.replace(caracter, "")
                 #Se transforma la frase a minúsculas
@@ -211,6 +220,14 @@ while continuar == True:
         respuesta_gpt, messages = gpt.gpt_conversation(prompt_resumen, messages)
         print(conver)
         print(respuesta_gpt)
+        dict_buscado = {"role": "system", "content": dict_prompt_sistema[partes_prompt[2]]}
+        indice_dict_buscado = messages.index(dict_buscado)
+        print(f'Indice de dict buscado: {indice_dict_buscado}')
+        contador = 0
+        for message in messages:
+                print(contador)
+                print(message)
+                contador += 1
         continuar_preg = input("¿Quieres continuar? S/N: ")
         if continuar_preg == "S":
                 continuar = True
